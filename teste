@@ -1,0 +1,48 @@
+import openpyxl
+import dbf
+from datetime import datetime
+
+def detectar_tipo_dado(valor):
+    if isinstance(valor, int) or isinstance(valor, float):
+        return 'N', 20, 2  
+    elif isinstance(valor, datetime):
+        return 'D', 8 
+    else:
+        return 'C', 50 
+
+def xlsx_to_dbf(xlsx_file, dbf_file):
+   
+    workbook = openpyxl.load_workbook(xlsx_file)
+    sheet = workbook.active
+
+    
+    headers = [cell.value for cell in sheet[1]] 
+
+    
+    tipos_colunas = []
+    primeira_linha = next(sheet.iter_rows(min_row=2, max_row=2, values_only=True))
+
+    for valor in primeira_linha:
+        tipo, *config = detectar_tipo_dado(valor)
+        if tipo == 'N':
+            tipos_colunas.append((headers[len(tipos_colunas)], tipo, config[0], config[1]))  # Número: Nome, Tipo, Tamanho, Decimais
+        else:
+            tipos_colunas.append((headers[len(tipos_colunas)], tipo, config[0]))  # Outros: Nome, Tipo, Tamanho
+
+   
+    table = dbf.Table(dbf_file, tipos_colunas)
+    table.open(dbf.READ_WRITE)
+
+    
+    for row in sheet.iter_rows(min_row=2, values_only=True):  
+        table.append(list(row))
+
+   
+    table.close()
+    print(f"Conversão concluída: {dbf_file}")
+
+# Exemplo de uso
+xlsx_file = "C:\Users\camila.siqueira\Downloads\B.O.M. OS 2273445 - Motor Diesel PC2000-8.xlsx"  # Caminho do arquivo .xlsx
+dbf_file = "C:\Users\camila.siqueira\Downloads\dados.dbf"    # Caminho do arquivo .dbf de destino
+
+xlsx_to_dbf(xlsx_file, dbf_file)
